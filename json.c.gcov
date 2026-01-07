@@ -1,0 +1,212 @@
+        -:    0:Source:json.c
+        -:    0:Graph:json.gcno
+        -:    0:Data:json.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:#include <stdbool.h>
+        -:    2:#include <stdio.h>
+        -:    3:#include <assert.h>
+        -:    4:#include <ctype.h>
+        -:    5:#include <stdlib.h>
+        -:    6:#include "json.h"
+        -:    7:#include "clog.h"
+        -:    8:#include <limits.h>
+        -:    9:#include <string.h>
+        -:   10:
+       25:   11:bool parse_int(int* a_value,  char const** a_pos) {
+       25:   12:	bool int_n = false;
+       25:   13:	bool neg_n = false;
+        -:   14:	//int nm = 0;
+        -:   15:
+       25:   16:	if(**a_pos == '-') {
+        1:   17:		(*a_pos)+=1;
+        1:   18:		neg_n = true;
+        -:   19:	}
+        -:   20:
+       25:   21:	if(isdigit(**a_pos)) {
+       24:   22:		int_n = true;
+        -:   23:	}
+       25:   24:	int numbb = 0;
+        -:   25:	//*a_value = numbb; code fails here
+       63:   26:	while(isdigit(**a_pos)) {
+       38:   27:		int nm = (**a_pos) - '0';
+       38:   28:		numbb = nm + (10 * numbb);
+       38:   29:		(*a_pos) += 1;
+        -:   30:	}
+       25:   31:	*a_value = numbb; //code passes here
+       25:   32:	if(neg_n && int_n) {
+    #####:   33:		*a_value = -1 * (*a_value);
+        -:   34:	}
+       25:   35:	return int_n;
+        -:   36:}
+        -:   37:
+       11:   38:bool parse_string(char** a_s, char const** a_pos){ //passing 18, 0 compiler errors,  1 fail maybe int invalid ?
+       11:   39:	int sz = 0; //size
+        -:   40:	bool booln;
+       11:   41:	booln = false;
+        -:   42:
+       11:   43:	if(**a_pos == '\"') {
+       11:   44:		booln = true;
+       11:   45:		(*a_pos)++;
+        -:   46:	}
+       44:   47:	while((**a_pos) != '\"'){
+       33:   48:		if((**a_pos) == '\0' || ((**a_pos) == '\n')){
+    #####:   49:			booln = false;
+        -:   50:			//break;  //check that again
+        -:   51:		}
+        -:   52:		//might need an else statement 
+       33:   53:		sz++;
+       33:   54:		(*a_pos)++;
+        -:   55:	}
+       11:   56:	if(booln){
+       11:   57:		char* otp = malloc(sizeof(**a_s) * (sz+1));
+       11:   58:		(*a_pos) -= sz;
+       44:   59:		for(int id =0; id<sz; id++){
+       33:   60:			(otp)[id] = **a_pos;
+       33:   61:			(*a_pos)++;
+        -:   62:		}
+       11:   63:		otp[sz] = '\0';
+       11:   64:		(*a_pos)++;
+       11:   65:		*a_s = otp;
+        -:   66:	}
+       11:   67:	return booln; 
+        -:   68:}
+       57:   69:bool parse_element(Element* a_element, char const** a_pos){  // same twice
+        -:   70:
+       69:   71:	while(isspace(**a_pos)){
+       12:   72:		(*a_pos)++;
+        -:   73:	}
+       57:   74:	if((isdigit(**a_pos))|| (**a_pos == '-') ){
+       25:   75:		a_element -> type = ELEMENT_INT;
+       25:   76:		return parse_int(&(a_element -> as_int), a_pos);
+        -:   77:	}
+       32:   78:	else if((**a_pos) == '\"'){
+       11:   79:		a_element -> type = ELEMENT_STRING;
+       11:   80:		return parse_string(&(a_element -> as_string), a_pos);
+        -:   81:	}
+       21:   82:	else if((**a_pos) == '['){
+       19:   83:		a_element -> type = ELEMENT_LIST;
+       19:   84:		return parse_list(&(a_element -> as_list), a_pos);
+        -:   85:	}
+        2:   86:	return false;
+        -:   87:}
+        -:   88:
+       19:   89:void _free_mem(Node* head) {  //helper function to free list ( call it in free element)
+       57:   90:	while(head != NULL) {
+       38:   91:		Node* temp = head;
+       38:   92:		head = head -> next;
+       38:   93:		free_element(temp -> element);	
+       38:   94:		free(temp);
+        -:   95:	}
+       19:   96:}
+        -:   97:
+       57:   98:void free_element(Element element){ // function to deallocate meory 
+        -:   99:	//
+       57:  100:	if(element.type == ELEMENT_STRING) {
+       11:  101:		free(element.as_string);
+        -:  102:	}
+       46:  103:	else if(element.type == ELEMENT_LIST){
+       16:  104:		Node* head = element.as_list;
+       16:  105:		_free_mem(head);
+        -:  106:
+        -:  107:		/*while(head != NULL) {
+        -:  108:		  Node* new_head = head;
+        -:  109:		  head = head -> next;
+        -:  110:		  free_element(temp -> element);	//breaks here : undeclared 'temp'
+        -:  111:		  free(new_head); 
+        -:  112:		  }*/
+        -:  113:	}
+       57:  114:}
+        -:  115:
+        -:  116:/*void print_element(Element element){ //
+        -:  117:  if(element.type == ELEMENT_INT){
+        -:  118:  printf("%d", element.as_int);
+        -:  119:  }
+        -:  120:  else if(element.type == ELEMENT_STRING){
+        -:  121:  printf("\"%s\"", element.as_string);
+        -:  122:  }*/
+        -:  123:
+       49:  124:void print_element(Element element) {	
+        -:  125:	//printf("r");
+       49:  126:	if(element.type == ELEMENT_INT) {
+       21:  127:		printf("%d", element.as_int);
+        -:  128:	}
+       28:  129:	else if(element.type == ELEMENT_STRING) {
+       10:  130:		printf("\"%s\"", element.as_string);
+        -:  131:	}
+       18:  132:	else if(element.type == ELEMENT_LIST) { 
+       15:  133:		printf("[");
+        -:  134:		//printf("x");
+       48:  135:		for(Node* ind = element.as_list; ind != NULL; ind = ind-> next) {
+        -:  136:			//printf("f");
+       33:  137:			print_element(ind -> element);
+       33:  138:			if(ind -> next != NULL) {
+       19:  139:				printf(",");
+        -:  140:			}
+        -:  141:		}
+       15:  142:		printf("]");
+        -:  143:	}
+        -:  144:
+       49:  145:}
+        -:  146:// Passing 8/14 without parse_list // //passing 13/14, check coverage again // check valgrind issue   //42/43 with valrgind and partial
+       19:  147:bool parse_list(Node** a_head, char const** a_pos){
+       19:  148:	bool lsd = true;
+       19:  149:	if((**a_pos) == '['){
+       19:  150:		(*a_pos)++;
+       19:  151:		Node* new_h = NULL;  // 
+       19:  152:		Node* tail = NULL;
+       55:  153:		while((**a_pos) != ']'){
+       39:  154:			if((**a_pos) == ','){
+       22:  155:				(*a_pos)++;
+       22:  156:				if((**a_pos) == ','){
+        1:  157:					lsd = false;
+        1:  158:					_free_mem(new_h);
+        1:  159:					break;
+        -:  160:				}
+        -:  161:				/* if(new_h == NULL){
+        -:  162:				   new_h = new_n;
+        -:  163:				   tail = new_n;
+        -:  164:				   }*/
+        -:  165:
+        -:  166:			}
+       38:  167:			Node* newnode = malloc(sizeof(*newnode));
+       38:  168:			newnode -> next  = NULL;
+       38:  169:			bool is_success = parse_element(&(newnode -> element), a_pos);// holds bool
+        -:  170:
+       38:  171:			if(new_h == NULL){
+       17:  172:				tail = newnode;
+       17:  173:				new_h = newnode;
+        -:  174:			}
+        -:  175:			else{
+       21:  176:				tail -> next = newnode; // ????
+       21:  177:				tail = newnode;
+        -:  178:			}
+       43:  179:			while(isspace(**a_pos)){
+        5:  180:				(*a_pos)++;
+        -:  181:			}
+       38:  182:			if(**a_pos != ',' && **a_pos != ']') {
+        2:  183:				_free_mem(new_h);
+        2:  184:				lsd = false;
+        2:  185:				break;
+        -:  186:			}
+        -:  187:
+       36:  188:			if(!is_success) {  //if fails it will free space for new node and head
+    #####:  189:				_free_mem(new_h); // check if we need to free new node
+    #####:  190:				lsd = false;
+    #####:  191:				break;
+        -:  192:			}
+        -:  193:			/*while(isspace(**a_pos)){
+        -:  194:			  (*a_pos)++;
+        -:  195:			  }*/
+        -:  196:
+        -:  197:		}
+       19:  198:		*a_head = new_h;
+       19:  199:		(*a_pos)++;
+        -:  200:	}
+        -:  201:	else{
+    #####:  202:		lsd = false;
+        -:  203:	}
+       19:  204:	return lsd;
+        -:  205:}
+        -:  206:
+        -:  207://add helper function to free list, and call function in free_element
