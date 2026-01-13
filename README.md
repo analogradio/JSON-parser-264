@@ -1,7 +1,5 @@
 # JSON-
-JSON parser in C
-
-Supports: 
+JSON parser in C that supports the following:
 
 integers
 
